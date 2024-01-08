@@ -21,7 +21,7 @@ Creating an entire Hangman game with an RNN involves multiple components, includ
 # Idea that I have not used due to Shortage of time:
 
 1.	GRU LAYERS
-Unfortunately due to shortage  of time I can't perform the experiment GRU LAYERS.
+Unfortunately due to shortage  of time I can't perform the experiment with GRU LAYERS.
 I can guide you on how to create a flowchart depicting the Hangman game with a GRU (Gated Recurrent Unit) layer.
 
 1. *Start*: Begin with a starting point indicating the initiation of the game.
