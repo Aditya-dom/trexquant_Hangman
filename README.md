@@ -1,8 +1,8 @@
 # Approaches used
  1. Natural Language Processing (NLP)
- 2. Bidirectional Long-Short Term Memory
- 3. Recurrent Neural Network
- 4. Reinforcement Learning (Deployed Strategy is more than 60% accurate.)
+ 2. Bidirectional Long-Short Term Memory (Bi-LSTM)
+ 3. Recurrent Neural Network (RNN)
+ 4. Reinforcement Learning (RL-Deployed Strategy is more than 60% accurate.)
 ##
 1.	Reinforcement Learning: 
 I tried my hand at building a reinforcement learning-enabled model to play Hangman. The goal is a win percentage greater than 50%. There are multiple ways to solve this problem, I'd have to imagine, but the problem statement seemed to lend itself well towards RL.
