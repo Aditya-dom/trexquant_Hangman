@@ -43,12 +43,12 @@ I can guide you on how to create a flowchart depicting the Hangman game with a G
 9. *End*: End the flowchart, indicating either a win or loss. 
 
 
-THANK YOU!!
+## THANK YOU!!
 
 
 
 
  
 
-Problem Given by Trexquant Investment lp.
+## Problem Given by Trexquant Investment lp.
 #### ALL RIGHT IS RESERVED TO TREXQUANT INVESTMENT
