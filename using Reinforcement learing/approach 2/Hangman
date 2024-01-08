@@ -1,0 +1,165 @@
+import random
+import matplotlib.pyplot as plt
+import numpy as np
+from word_lists import get_hangman_words
+from collections import Counter, defaultdict
+from statistics import mean
+from sklearn.model_selection import train_test_split
+
+# Function to calculate letter frequency in the word list
+def calculate_letter_frequency(word_list):
+    all_letters = "".join(word_list)  # Concatenating all the words
+    letter_counts = Counter(all_letters)  # Count frequency of each letter
+    total_letters = sum(letter_counts.values())  # Calculate total number of letters
+    
+    # Calculate letter frequencies and sort them
+    sorted_counts = letter_counts.most_common()
+    letter_frequency = {k: v / total_letters for k, v in sorted_counts}
+    return letter_frequency
+
+
+# Function to decide the next action (guessing a letter) based on the current state and epsilon-greedy strategy
+def choose_action(state, letter_frequency, epsilon=0.1):
+    global action_count
+    action_count += 1  # Increase action count for each guess
+    vowels = set("aeiou")
+    consonants = set("bcdfghjklmnpqrstvwxyz")
+    # Extract 25% of most frequent consonants
+    top_consonants = [k for k, v in sorted(letter_frequency.items(), key=lambda item: item[1], reverse=True) if k in consonants][:len(consonants)//4]
+    # Initialize
+    if state in Q_table and np.random.rand() > epsilon:
+        max_q_value = max(Q_table[state].values())
+        max_actions = [action for action, q_value in Q_table[state].items() if q_value == max_q_value]
+        best_action = max(max_actions, key=lambda action: letter_frequency.get(action, 0))
+    else:
+        remaining_letters = set("abcdefghijklmnopqrstuvwxyz") - set(state[2])
+        best_action = random.choice(list(remaining_letters))
+    # First two guesses should be vowels
+    if action_count == 1 or action_count == 2:
+        remaining_vowels = vowels - set(state[2])
+        if remaining_vowels:
+            best_action = random.choice(list(remaining_vowels))
+    # Third and fourth should be top 25% frequent consonants
+    elif action_count == 3 or action_count == 4:
+        remaining_top_consonants = set(top_consonants) - set(state[2])
+        if remaining_top_consonants:
+            best_action = random.choice(list(remaining_top_consonants))
+    return best_action
+
+
+def encode_state(state, attempts_left, guessed_letters):
+    return (state, attempts_left, "".join(sorted(guessed_letters)))
+
+
+# Function to update the Q-table based on Q-learning algorithm
+def update_Q_table(state, action, reward, new_state, Q_table, epoch, alpha_initial=0.5, decay_factor=0.01, gamma=0.9):
+    alpha = alpha_initial / (1 + decay_factor * epoch)
+    max_future_Q = max(Q_table[new_state].values()) if new_state in Q_table else 0
+    current_Q = Q_table[state][action]
+
+    Q_table[state][action] = (1 - alpha) * current_Q + alpha * (reward + gamma * max_future_Q)
+
+
+# Hangman game logic
+def hangman(word, letter_frequency, epochs):
+    global action_count
+    action_count = 0
+    state_str = "_" * len(word)  # Initial state with underscores
+    attempts_left = 6  # Number of attempts left
+    guessed_letters = set()  # Letters already guessed
+
+    state = encode_state(state_str, attempts_left, guessed_letters)
+    
+    history = []  # Store actions history
+
+    while attempts_left > 0 and "_" in state_str:
+        action = choose_action(state, letter_frequency)  # Choose next letter to guess
+        
+        guessed_letters.add(action)
+        new_state_str = state_str  # Initialize new state to be same as old state initially
+
+        # If chosen letter is in the word, reveal it
+        if action in word:
+            for i, c in enumerate(word):
+                if c == action:
+                    new_state_str = new_state_str[:i] + c + new_state_str[i+1:]
+        
+        else:  # Otherwise, reduce attempts
+            attempts_left -= 1
+
+        new_state = encode_state(new_state_str, attempts_left, guessed_letters)
+        
+        if action in word:
+            reward = 0.3  # Positive reward for correct guess
+        else:
+            reward = -0.1  # Negative reward for wrong guess
+
+        if "_" not in new_state_str:
+            reward += 1  # Bonus reward for winning the game
+
+        update_Q_table(state, action, reward, new_state, Q_table, epochs) # Update Q-table
+
+        state_str = new_state_str  # Set new state as the current state
+        state = new_state  # Update the entire state
+        history.append(action)  # Add action to history
+
+    return state_str, history  # Return final state and action history
+
+
+def train_model(word_list, letter_frequency, epochs, epsilon_decay=0.995):
+    epsilon = 1.0  # Start with a high epsilon
+    win_ratio = []
+    for epoch in range(epochs):
+        win_count = 0
+        epsilon *= epsilon_decay  # Reduce epsilon each epoch
+        for word in word_list:
+            result,_ = hangman(word, letter_frequency, epochs)
+            if "_" not in result:  # A win if no underscores are left in the result
+                win_count +=1
+                win_ratio.append(win_ratio)
+    return win_ratio
+
+def evaluate_test_words(custom_words, letter_frequency):
+    print("\nEvaluating on custom words:")
+    wins = 0  # Number of games won
+    total_games = len(custom_words)  # Total number of games    
+    for word in custom_words:
+        result, _ = hangman(word, letter_frequency, epochs=1)
+        win = "_" not in result  # A win if no underscores are left in the result
+        print(f"Word: {word}, Guess: {result} Result: {'Win' if win else 'Lose'}")
+        
+        if win:
+            wins += 1
+    win_percentage = (wins / total_games) * 100  # Calculate win percentage
+    print(f"Custom Words - Wins: {wins}, Total: {total_games}, Win Percentage: {round(win_percentage, 3)}%")
+
+
+# Main function to run the experiment
+def run_experiment(runs):
+    word_list = get_hangman_words()
+    letter_frequency = calculate_letter_frequency(word_list)
+    win_ratios = []
+    try:
+        for i in range(runs):
+            print(f"Run {i + 1}: Training...")
+            win_ratio = train_model(word_list, letter_frequency, epochs)
+            print(f"Win ratio for run {i + 1}: {win_ratio}")
+
+    except KeyboardInterrupt:
+        print("\nExperiment interrupted. Calculating win ratio.")
+
+    finally:
+        mean_win_ratio = round(mean(win_ratios), 3)
+        print(f"Mean Win Ratio: {mean_win_ratio}")
+
+    # Custom Test Words
+    test_words = ["ocean", "hangman", "rocket", "python", "cheese", "caramel", "part", "letter", "candle", "series"]
+    evaluate_test_words(test_words, letter_frequency)
+
+# Run the experiment
+epochs = 40
+runs = 1000
+action_count = 0
+word_list = get_hangman_words()
+Q_table = defaultdict(lambda: defaultdict(float))
+run_experiment(runs)
