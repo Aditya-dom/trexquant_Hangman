@@ -1,3 +1,4 @@
+# Checkout Catboost approach [here](https://github.com/Aditya-dom/Auto_Hangman)
 # Approaches used
  1. Natural Language Processing (NLP)
  2. Bidirectional Long-Short Term Memory (Bi-LSTM)
